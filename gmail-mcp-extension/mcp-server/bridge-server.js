@@ -1,11 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
+import { fileURLToPath } from 'url';
 
-class GmailBridgeServer {
-  constructor(port = 3456) {
+export class GmailBridgeServer {
+  constructor(port = 3456, options = {}) {
     this.app = express();
     this.port = port;
+    this.logger = options.logger || console.log;
     this.pendingRequests = new Map();
     this.chromeConnected = false;
     this.lastPing = null;
@@ -140,12 +142,12 @@ class GmailBridgeServer {
   }
   
   start() {
-    this.app.listen(this.port, () => {
-      console.log(`Gmail Bridge Server running on http://localhost:${this.port}`);
-      console.log('Endpoints:');
-      console.log(`  Health: http://localhost:${this.port}/health`);
-      console.log(`  Chrome Poll: http://localhost:${this.port}/chrome/poll`);
-      console.log(`  MCP Request: http://localhost:${this.port}/mcp/request`);
+    const httpServer = this.app.listen(this.port, () => {
+      this.logger(`Gmail Bridge Server running on http://localhost:${this.port}`);
+      this.logger('Endpoints:');
+      this.logger(`  Health: http://localhost:${this.port}/health`);
+      this.logger(`  Chrome Poll: http://localhost:${this.port}/chrome/poll`);
+      this.logger(`  MCP Request: http://localhost:${this.port}/mcp/request`);
     });
     
     // Clean up old requests periodically
@@ -157,9 +159,13 @@ class GmailBridgeServer {
         }
       }
     }, 10000);
+
+    return httpServer;
   }
 }
 
-// Start the server
-const server = new GmailBridgeServer();
-server.start();
+const isDirectRun = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+if (isDirectRun) {
+  const server = new GmailBridgeServer();
+  server.start();
+}

@@ -5,6 +5,31 @@ import {
   CallToolRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
 import fetch from 'node-fetch';
+import { GmailBridgeServer } from './bridge-server.js';
+
+const BRIDGE_URL = process.env.GMAIL_MCP_BRIDGE_URL || 'http://localhost:3456';
+
+async function ensureBridgeServer() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2000);
+
+  try {
+    const response = await fetch(`${BRIDGE_URL}/health`, { signal: controller.signal });
+    if (response.ok) {
+      console.error(`Gmail bridge already running at ${BRIDGE_URL}`);
+      return;
+    }
+  } catch {
+    // Start an embedded bridge below.
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const bridge = new GmailBridgeServer(3456, {
+    logger: (message) => console.error(message)
+  });
+  bridge.start();
+}
 
 class GmailMCPServer {
   constructor() {
@@ -1423,6 +1448,7 @@ Total Accounts: ${result.data.totalAccounts || 'Unknown'}`
   }
 
   async start() {
+    await ensureBridgeServer();
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
     console.error('Gmail MCP Server started');

@@ -17,6 +17,7 @@ import { InstallationManager } from '../tools/installer/installer.js';
 import { SystemDetector } from '../tools/installer/system-detector.js';
 import { UserInterface } from '../tools/installer/ui.js';
 import { ClaudeConfigManager } from '../tools/installer/claude-config.js';
+import { CodexConfigManager } from '../tools/installer/codex-config.js';
 import { ExtensionManager } from '../tools/installer/extension-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +34,7 @@ class GmailMcpCli {
         this.installer = new InstallationManager();
         this.detector = new SystemDetector();
         this.claudeConfig = new ClaudeConfigManager();
+        this.codexConfig = new CodexConfigManager();
         this.extensionManager = new ExtensionManager();
         
         // 命令映射 - 用数据而非条件分支
@@ -141,9 +143,10 @@ class GmailMcpCli {
         
         try {
             // 并行检查所有组件状态
-            const [systemStatus, claudeStatus, extensionStatus] = await Promise.all([
+            const [systemStatus, claudeStatus, codexStatus, extensionStatus] = await Promise.all([
                 this.detector.quickDiagnosis(),
                 this.claudeConfig.getStatus(),
+                this.codexConfig.getStatus(),
                 this.extensionManager.getStatus()
             ]);
             
@@ -153,6 +156,7 @@ class GmailMcpCli {
             this._showStatusSummary({
                 system: systemStatus,
                 claude: claudeStatus,
+                codex: codexStatus,
                 extension: extensionStatus
             });
 
@@ -196,7 +200,11 @@ class GmailMcpCli {
                 fixes.push(...claudeRepair.fixes.map(fix => `Claude: ${fix}`));
             }
 
-            // TODO: 添加更多修复逻辑
+            const codexStatus = await this.codexConfig.verify();
+            if (!codexStatus.valid) {
+                await this.codexConfig.updateConfig(resolve(ROOT_DIR, 'gmail-mcp-extension'));
+                fixes.push('Codex: 已修复 MCP 配置');
+            }
             
             if (fixes.length > 0) {
                 this.ui.showSuccess(`✅ 修复完成:`);
@@ -223,6 +231,9 @@ class GmailMcpCli {
         
         // 测试 Claude 配置
         tests.push(await this._testClaudeConfig());
+
+        // 测试 Codex 配置
+        tests.push(await this._testCodexConfig());
         
         // 测试扩展配置
         tests.push(await this._testExtensionConfig());
@@ -315,8 +326,9 @@ class GmailMcpCli {
             '2. 备份现有配置',
             '3. 安装 MCP 服务器依赖',
             '4. 配置 Claude Desktop',
-            '5. 设置浏览器扩展',
-            '6. 验证安装'
+            '5. 配置 Codex MCP',
+            '6. 设置浏览器扩展',
+            '7. 验证安装'
         ];
 
         this.ui.showInfo('📋 安装计划:');
@@ -342,6 +354,13 @@ class GmailMcpCli {
             this.ui.showSuccess(`Claude Desktop: ${status.claude.message}`);
         } else {
             this.ui.showError(`Claude Desktop: ${status.claude.message}`);
+        }
+
+        // Codex 状态
+        if (status.codex.status === 'configured') {
+            this.ui.showSuccess(`Codex: ${status.codex.message}`);
+        } else {
+            this.ui.showError(`Codex: ${status.codex.message}`);
         }
 
         // 扩展状态
@@ -393,6 +412,29 @@ class GmailMcpCli {
         } catch (error) {
             return {
                 name: 'Claude Desktop 配置',
+                passed: false,
+                status: '错误',
+                details: error.message
+            };
+        }
+    }
+
+    /**
+     * 测试 Codex 配置
+     */
+    async _testCodexConfig() {
+        try {
+            const verification = await this.codexConfig.verify();
+            return {
+                name: 'Codex MCP 配置',
+                passed: verification.valid,
+                status: verification.valid ? '正常' : '异常',
+                details: verification.valid ? verification.serverScript : verification.error,
+                suggestion: !verification.valid ? '运行 gmail-mcp fix 尝试修复' : null
+            };
+        } catch (error) {
+            return {
+                name: 'Codex MCP 配置',
                 passed: false,
                 status: '错误',
                 details: error.message

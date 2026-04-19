@@ -42,6 +42,7 @@ Limitations to note:
 
 For a guided setup, see the Quick Start and Website:
 - Quick Start: [docs/quick-start/installation.md](./docs/quick-start/installation.md)
+- Codex Quick Start: [docs/quick-start/codex.md](./docs/quick-start/codex.md)
 - Website: https://cafferychen777.github.io/gmail-mcp/
 
 Prerequisites:
@@ -106,6 +107,19 @@ gmail-mcp doctor    # Diagnose issues
 gmail-mcp fix       # Auto-fix common problems
 gmail-mcp test      # Run tests
 ```
+
+### In Codex
+
+The installer writes a Codex MCP entry to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.gmail-mcp]
+command = "node"
+args = [".../gmail-mcp-extension/mcp-server/index.js"]
+env = { NODE_ENV = "production" }
+```
+
+Restart Codex after installation. The MCP server automatically starts or reuses the local bridge on `http://localhost:3456`.
 
 ### In Claude Desktop
 

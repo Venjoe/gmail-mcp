@@ -9,6 +9,7 @@ import { promisify } from 'util';
 import { SystemDetector } from './system-detector.js';
 import { UserInterface } from './ui.js';
 import { ClaudeConfigManager } from './claude-config.js';
+import { CodexConfigManager } from './codex-config.js';
 import { ExtensionManager } from './extension-manager.js';
 import { PlatformAdapters } from './platform-adapters.js';
 
@@ -32,7 +33,8 @@ export class InstallationManager {
             { id: 'check_deps', name: '检查依赖', weight: 15 },
             { id: 'backup_configs', name: '备份现有配置', weight: 10 },
             { id: 'install_server', name: '安装 MCP 服务器', weight: 25 },
-            { id: 'configure_claude', name: '配置 Claude Desktop', weight: 20 },
+            { id: 'configure_claude', name: '配置 Claude Desktop', weight: 15 },
+            { id: 'configure_codex', name: '配置 Codex', weight: 10 },
             { id: 'setup_extension', name: '配置浏览器扩展', weight: 15 },
             { id: 'verify_install', name: '验证安装', weight: 5 }
         ];
@@ -40,6 +42,7 @@ export class InstallationManager {
         this.systemDetector = new SystemDetector();
         this.ui = new UserInterface();
         this.claudeConfig = new ClaudeConfigManager();
+        this.codexConfig = new CodexConfigManager();
         this.extensionManager = new ExtensionManager();
         this.platformAdapters = new PlatformAdapters();
         
@@ -150,6 +153,11 @@ export class InstallationManager {
                 name: 'Claude Desktop 配置'
             },
             {
+                type: 'codex_config',
+                source: this.codexConfig.configPath,
+                name: 'Codex 配置'
+            },
+            {
                 type: 'extension_config', 
                 source: await this.platformAdapters.getExtensionConfigPath(),
                 name: '扩展配置'
@@ -209,6 +217,18 @@ export class InstallationManager {
     }
 
     /**
+     * 步骤 5b: 配置 Codex
+     */
+    async _configure_codex(options) {
+        if (!this.state.installPath) {
+            throw new Error('安装路径未设置');
+        }
+
+        await this.codexConfig.updateConfig(this.state.installPath);
+        this.ui.showSuccess('✓ Codex MCP 配置已更新');
+    }
+
+    /**
      * 步骤 6: 配置浏览器扩展
      */
     async _setup_extension(options) {
@@ -223,12 +243,16 @@ export class InstallationManager {
         // 快速验证关键组件
         const verifications = [
             () => this.claudeConfig.verify(),
+            () => this.codexConfig.verify(),
             () => this.extensionManager.verify(),
             () => this._verifyServer()
         ];
 
         for (const verify of verifications) {
-            await verify();
+            const result = await verify();
+            if (result && result.valid === false) {
+                throw new Error(result.error || '安装验证失败');
+            }
         }
 
         this.ui.showSuccess('✓ 安装验证通过');
@@ -344,6 +368,9 @@ export class InstallationManager {
         try {
             // 卸载 Claude 配置
             await this.claudeConfig.removeConfig();
+
+            // 卸载 Codex 配置
+            await this.codexConfig.removeConfig();
             
             // 移除扩展配置
             await this.extensionManager.removeConfig();

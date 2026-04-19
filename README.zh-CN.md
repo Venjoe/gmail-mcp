@@ -33,6 +33,17 @@
 cd gmail-mcp-extension/mcp-server && npm install
 ```
 
+Codex 用户请参考：[docs/quick-start/codex.md](docs/quick-start/codex.md)。安装器会自动写入 `~/.codex/config.toml`：
+
+```toml
+[mcp_servers.gmail-mcp]
+command = "node"
+args = [".../gmail-mcp-extension/mcp-server/index.js"]
+env = { NODE_ENV = "production" }
+```
+
+重启 Codex 后即可使用。MCP server 会自动启动或复用本地 bridge：`http://localhost:3456`。
+
 ## 📁 项目结构
 
 ```

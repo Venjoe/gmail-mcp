@@ -1,0 +1,15 @@
+{
+  "name": "gmail-mcp-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "gmail-mcp": "./bin/gmail-mcp"
+  },
+  "scripts": {
+    "install:server": "npm install --prefix gmail-mcp-extension/mcp-server",
+    "bridge": "npm run bridge --prefix gmail-mcp-extension/mcp-server",
+    "mcp": "npm start --prefix gmail-mcp-extension/mcp-server",
+    "test:bridge": "node gmail-mcp-extension/mcp-server/quick-test.js"
+  }
+}
