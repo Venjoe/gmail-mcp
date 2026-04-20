@@ -23,6 +23,30 @@ The installer updates both:
 - Claude Desktop: `claude_desktop_config.json`
 - Codex: `~/.codex/config.toml`
 
+### Windows and non-interactive terminal note
+
+On Windows or in non-interactive terminals, `node ./bin/gmail-mcp install --force`
+may still fail if the installer tries to redraw progress output.
+
+If that happens, the manual Codex setup is:
+
+1. Install the server dependencies:
+
+```bash
+npm run install:server
+```
+
+2. Add this block to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.gmail-mcp]
+command = "node"
+args = ["C:\\Users\\you\\gmail-mcp\\gmail-mcp-extension\\mcp-server\\index.js"]
+env = { NODE_ENV = "production" }
+```
+
+3. Restart Codex.
+
 ## Chrome setup
 
 Open `chrome://extensions/`, enable Developer mode, then load this unpacked extension folder:
@@ -32,6 +56,8 @@ gmail-mcp-extension/extension
 ```
 
 Open Gmail in Chrome and keep the target account signed in.
+Keep at least one `https://mail.google.com/` tab open and fully loaded before testing.
+If the bridge reports `chromeConnected: false` or account requests time out, refresh the Gmail tab once and try again.
 
 ## Use in Codex
 
@@ -55,3 +81,10 @@ Expected bridge health:
 ```json
 {"status":"ok","chromeConnected":true}
 ```
+
+If `chromeConnected` is `false`, the most common causes are:
+
+- Chrome is not open
+- the Gmail extension is disabled
+- no Gmail tab is open
+- Gmail is open but has not finished loading

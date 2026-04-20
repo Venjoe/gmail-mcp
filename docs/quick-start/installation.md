@@ -21,7 +21,7 @@ node --version
 
 ### 0. 一键安装（推荐）
 ```bash
-cd ~/gmail-mcp || git clone https://github.com/cafferychen777/gmail-mcp.git && cd gmail-mcp
+cd ~/gmail-mcp || git clone https://github.com/Venjoe/gmail-mcp.git && cd gmail-mcp
 ./bin/gmail-mcp install
 ```
 若遇到问题或希望手动操作，请按以下步骤继续。
@@ -29,7 +29,7 @@ cd ~/gmail-mcp || git clone https://github.com/cafferychen777/gmail-mcp.git && c
 ### 1.1 下载项目
 ```bash
 cd ~
-git clone https://github.com/cafferychen777/gmail-mcp.git
+git clone https://github.com/Venjoe/gmail-mcp.git
 cd gmail-mcp/gmail-mcp-extension
 ```
 
@@ -94,6 +94,14 @@ curl http://localhost:3456/health
 {"status":"ok","chromeConnected":true}
 ```
 
+如果返回 `chromeConnected: false`，先不要继续排查 MCP 配置。优先检查：
+
+1. Chrome 是否已经打开
+2. 扩展是否已启用
+3. 是否已打开 `https://mail.google.com/`
+4. Gmail 页面是否已经完全加载
+5. 刷新 Gmail 标签页后再测试一次
+
 ---
 
 ## ⚙️ 第四步：配置Claude Desktop
@@ -145,7 +153,8 @@ cd ~/.config/Claude/
 
 ### 5.2 打开Gmail
 在Chrome中打开：https://mail.google.com
-确保已登录你的Gmail账户。
+确保已登录你的Gmail账户，并把 Gmail 页面完整加载出来。
+第一次测试前，建议手动刷新一次 Gmail 标签页。
 
 ### 5.3 测试Claude集成
 在Claude Desktop中输入：
@@ -167,19 +176,37 @@ cd ~/gmail-mcp/gmail-mcp-extension/mcp-server
 npm run bridge
 ```
 
+然后确认：
+1. Chrome 仍然开着
+2. Gmail 标签页仍然开着
+3. 扩展图标显示正常
+
 ### 问题2："Chrome扩展无响应"
 **解决方案：**
 1. 打开 `chrome://extensions/`
 2. 找到"Gmail MCP Bridge"
 3. 点击"刷新"按钮
+4. 切回 Gmail 标签页并手动刷新页面
 
-### 问题3："Claude中看不到Gmail工具"
+### 问题3："获取账号列表超时" 或 "没有检测到账号"
+**解决方案：**
+1. 打开 `https://mail.google.com/`
+2. 确认已经登录目标账号
+3. 等待邮箱页面完全加载
+4. 重新运行：
+
+```bash
+curl http://localhost:3456/health
+npm run test:bridge
+```
+
+### 问题4："Claude中看不到Gmail工具"
 **解决方案：**
 1. 检查`claude_desktop_config.json`文件路径是否正确
 2. 完全重启Claude Desktop
 3. 确保Bridge服务器在运行
 
-### 问题4："端口3456已被占用"
+### 问题5："端口3456已被占用"
 **解决方案：**
 ```bash
 # 查找占用进程
@@ -197,8 +224,8 @@ npm run bridge
 如果按照以上步骤仍然无法正常工作：
 
 1. **查看详细故障排除指南：**[../user-guide/troubleshooting.md](../user-guide/troubleshooting.md)
-2. **提交问题：**[GitHub Issues](https://github.com/cafferychen777/gmail-mcp/issues)
-3. **加入讨论：**[GitHub Discussions](https://github.com/cafferychen777/gmail-mcp/discussions)
+2. **提交问题：**[GitHub Issues](https://github.com/Venjoe/gmail-mcp/issues)
+3. **加入讨论：**[GitHub Discussions](https://github.com/Venjoe/gmail-mcp/discussions)
 
 ---
 

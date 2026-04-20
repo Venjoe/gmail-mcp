@@ -71,13 +71,16 @@ export class UserInterface {
         
         const bar = '█'.repeat(filled) + '░'.repeat(empty);
         const percent = Math.round(percentage * 100);
+        const progressText = `${this.SYMBOLS.progress} [${this._colorize('cyan', bar)}] ${percent}% - ${message}`;
         
-        // 清除当前行并显示进度
-        process.stdout.clearLine(0);
-        process.stdout.cursorTo(0);
-        process.stdout.write(
-            `${this.SYMBOLS.progress} [${this._colorize('cyan', bar)}] ${percent}% - ${message}`
-        );
+        // 在非交互终端里退化成普通输出，避免 clearLine/cursorTo 崩溃
+        if (this._canRewriteLine()) {
+            process.stdout.clearLine(0);
+            process.stdout.cursorTo(0);
+            process.stdout.write(progressText);
+        } else {
+            console.log(progressText);
+        }
         
         if (percentage >= 1) {
             process.stdout.write('\n');
@@ -341,7 +344,7 @@ export class UserInterface {
         let i = 0;
         
         const interval = setInterval(() => {
-            if (process.stdout.clearLine && process.stdout.cursorTo) {
+            if (this._canRewriteLine()) {
                 process.stdout.clearLine(0);
                 process.stdout.cursorTo(0);
                 process.stdout.write(`${spinnerChars[i]} ${message}`);
@@ -355,7 +358,7 @@ export class UserInterface {
         return {
             stop: () => {
                 clearInterval(interval);
-                if (process.stdout.clearLine && process.stdout.cursorTo) {
+                if (this._canRewriteLine()) {
                     process.stdout.clearLine(0);
                     process.stdout.cursorTo(0);
                 } else {
@@ -395,5 +398,14 @@ export class UserInterface {
             
             this.showError('无效选择，请重试');
         }
+    }
+
+    _canRewriteLine() {
+        return Boolean(
+            process.stdout &&
+            process.stdout.isTTY &&
+            typeof process.stdout.clearLine === 'function' &&
+            typeof process.stdout.cursorTo === 'function'
+        );
     }
 }

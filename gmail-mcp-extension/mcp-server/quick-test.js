@@ -13,6 +13,7 @@ const results = {
   failed: 0,
   tests: []
 };
+let latestHealth = null;
 
 async function testFunction(name, testFn) {
   process.stdout.write(`⏳ 测试: ${name}...`);
@@ -185,10 +186,21 @@ async function runTests() {
   try {
     const healthResponse = await fetch(`${BRIDGE_URL}/health`);
     const health = await healthResponse.json();
+    latestHealth = health;
     if (health.status === 'ok') {
       console.log('✅ Bridge Server 连接正常');
       console.log(`   Chrome扩展: ${health.chromeConnected ? '已连接' : '未连接'}`);
       console.log();
+
+      if (!health.chromeConnected) {
+        console.log('⚠️  Chrome 扩展还没有连接到桥接服务。');
+        console.log('   请先确认以下几项:');
+        console.log('   1. Chrome 已打开并启用了 Gmail MCP Bridge 扩展');
+        console.log('   2. 已打开 https://mail.google.com/ 并保持目标账号登录');
+        console.log('   3. Gmail 标签页已经完全加载，必要时手动刷新一次');
+        console.log('   4. 返回后重新运行 npm run test:bridge');
+        return;
+      }
     }
   } catch (error) {
     console.log('❌ 无法连接到 Bridge Server');
@@ -220,6 +232,21 @@ async function runTests() {
     results.tests.filter(t => t.status !== 'passed').forEach(test => {
       console.log(`   • ${test.name}: ${test.error}`);
     });
+
+    const accountErrors = results.tests.filter(
+      t => t.name === '获取账号列表' && /timeout|没有检测到账号/i.test(t.error || '')
+    );
+    if (accountErrors.length > 0) {
+      console.log('\n🔎 账号检测失败时，最常见原因是 Gmail 页面还没有准备好:');
+      console.log('   • Chrome 里没有打开 Gmail 标签页');
+      console.log('   • Gmail 标签页没登录目标账号');
+      console.log('   • Gmail 标签页还没完全加载完成');
+      console.log('   • 扩展已安装，但 Gmail 页面需要手动刷新一次');
+    }
+
+    if (latestHealth?.chromeConnected) {
+      console.log('\n💡 当前桥接层已连接，问题更可能在 Gmail 页面状态，而不是 MCP 配置。');
+    }
   }
 
   // 建议
@@ -239,7 +266,7 @@ async function runTests() {
   5. "写邮件给 test@example.com"
   `);
 
-  console.log('\n详细测试指南: CLAUDE_DESKTOP_TEST_GUIDE.md');
+  console.log('\n详细安装说明: docs/quick-start/codex.md');
 }
 
 // 执行
